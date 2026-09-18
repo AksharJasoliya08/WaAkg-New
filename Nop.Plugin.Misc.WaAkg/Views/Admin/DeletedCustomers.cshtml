@@ -1,0 +1,146 @@
+@page
+@model Nop.Plugin.Misc.WaAkg.Models.WaAkgDeletedCustomerSearchModel
+@{
+    Layout = "_AdminLayout";
+    ViewBag.Title = "Deleted Customers (OTP)";
+}
+
+<div class="content-header">
+    <h1>Deleted Customers (Soft Deleted)</h1>
+</div>
+
+<div class="content">
+    <div class="form-horizontal">
+        <div class="cards-group">
+            <div class="card card-default">
+                <div class="card-body">
+                    <p>Here you can manage soft-deleted OTP customers. You can recover them to allow login again or permanently delete them.</p>
+                </div>
+            </div>
+            
+            <div class="card card-default">
+                <div class="card-header">
+                    <div class="card-title">
+                        <i class="fa fa-trash"></i> Deleted Customers List
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div id="deleted-customers-grid"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script asp-location="Footer">
+    $(document).ready(function () {
+        $("#deleted-customers-grid").kendoGrid({
+            dataSource: {
+                type: "json",
+                transport: {
+                    read: {
+                        url: "@Url.Action("DeletedCustomerList", "WaOtp")",
+                        type: "POST",
+                        dataType: "json"
+                    }
+                },
+                pageSize: 20,
+                serverPaging: true,
+                serverSorting: true
+            },
+            pageable: {
+                refresh: true,
+                pageSizes: true
+            },
+            columns: [
+                {
+                    field: "FullName",
+                    title: "Name"
+                },
+                {
+                    field: "Email",
+                    title: "Email"
+                },
+                {
+                    field: "Phone",
+                    title: "Mobile No"
+                },
+                {
+                    field: "Username",
+                    title: "Username"
+                },
+                {
+                    field: "DeletedOnUtc",
+                    title: "Deleted Date",
+                    template: '#= kendo.toString(kendo.parseDate(DeletedOnUtc), "dd/MM/yyyy HH:mm") #'
+                },
+                {
+                    field: "Reason",
+                    title: "Reason",
+                    width: 150
+                },
+                {
+                    field: "Id",
+                    title: "Actions",
+                    width: 250,
+                    template: `
+                        <button onclick="recoverCustomer(#= Id #)" class="btn btn-success btn-sm">
+                            <i class="fa fa-undo"></i> Recover
+                        </button>
+                        <button onclick="permanentDeleteCustomer(#= Id #)" class="btn btn-danger btn-sm">
+                            <i class="fa fa-times"></i> Permanent Delete
+                        </button>
+                    `
+                }
+            ]
+        });
+    });
+
+    function recoverCustomer(id) {
+        if (!confirm('Are you sure you want to recover this customer? They will be able to login again.')) {
+            return;
+        }
+        $.ajax({
+            url: '@Url.Action("RecoverDeletedCustomer", "WaOtp")',
+            type: 'POST',
+            data: { id: id },
+            success: function (response) {
+                if (response.Success) {
+                    alert(response.Message);
+                    var grid = $("#deleted-customers-grid").data("kendoGrid");
+                    grid.dataSource.read();
+                    grid.refresh();
+                } else {
+                    alert('Error: ' + response.Message);
+                }
+            },
+            error: function (xhr, ajaxOptions, thrownError) {
+                alert('Failed to recover customer.');
+            }
+        });
+    }
+
+    function permanentDeleteCustomer(id) {
+        if (!confirm('WARNING: This action cannot be undone! The customer data will be lost forever. Continue?')) {
+            return;
+        }
+        $.ajax({
+            url: '@Url.Action("PermanentDeleteCustomer", "WaOtp")',
+            type: 'POST',
+            data: { id: id },
+            success: function (response) {
+                if (response.Success) {
+                    alert(response.Message);
+                    var grid = $("#deleted-customers-grid").data("kendoGrid");
+                    grid.dataSource.read();
+                    grid.refresh();
+                } else {
+                    alert('Error: ' + response.Message);
+                }
+            },
+            error: function (xhr, ajaxOptions, thrownError) {
+                alert('Failed to delete customer.');
+            }
+        });
+    }
+</script>

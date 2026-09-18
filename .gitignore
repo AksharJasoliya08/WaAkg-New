@@ -1,0 +1,56 @@
+```
+# Build artifacts
+*.o
+*.obj
+*.exe
+*.dll
+*.so
+*.a
+*.out
+
+# Dependencies
+packages/
+bin/
+obj/
+lib/
+node_modules/
+bower_components/
+
+# Logs
+*.log
+**/logs/
+
+# Environment
+.env
+.env.local
+.env.*
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Coverage reports
+coverage/
+htmlcov/
+*.coverage
+
+# Temporary files
+*.tmp
+*.temp
+**/temp/
+
+# NopCommerce specific
+App_Data/
+obj/
+bin/
+*.compiled
+*.bak
+*.log
+```

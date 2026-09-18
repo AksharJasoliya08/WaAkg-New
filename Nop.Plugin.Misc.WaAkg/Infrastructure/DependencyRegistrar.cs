@@ -45,6 +45,7 @@ public class DependencyRegistrar : INopStartup
         services.AddScoped<IWaAkgErrorLogService, WaAkgErrorLogService>();
         services.AddScoped<ICodBridgeService, CodBridgeService>();
         services.AddScoped<IWaAkgMediaUploadService, WaAkgMediaUploadService>();
+        services.AddScoped<IWaAkgDeletedCustomerService, WaAkgDeletedCustomerService>();
 
         services.AddHttpClient(WaAkgDefaults.HttpClientName, client =>
         {
