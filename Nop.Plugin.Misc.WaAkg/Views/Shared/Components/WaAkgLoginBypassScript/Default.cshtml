@@ -1,0 +1,37 @@
+<script>
+(function () {
+    // Rewrites any click that would call setLocation('/login/checkoutasguest...')
+    // (the cart-flyout "Checkout" button, and the cart page's own Checkout button on themes
+    // that submit it the same way) so guests go straight to /checkout instead of nopCommerce's
+    // native Login/Register page. The WhatsApp OTP modal (WaOtpWidget) then renders on that
+    // page and handles login/registration in its place.
+    function isGuestLoginRedirect(url) {
+        return typeof url === 'string' && url.indexOf('/login/checkoutasguest') !== -1;
+    }
+
+    var originalSetLocation = window.setLocation;
+    window.setLocation = function (url) {
+        if (isGuestLoginRedirect(url)) {
+            url = '/checkout';
+        }
+        if (typeof originalSetLocation === 'function') {
+            return originalSetLocation.call(this, url);
+        }
+        window.location.href = url;
+    };
+
+    // Fallback: capture-phase click handler in case a button's onclick is bound after this
+    // script runs, or a theme calls location.href directly instead of setLocation().
+    document.addEventListener('click', function (e) {
+        var el = e.target.closest && e.target.closest('.checkout-button, [onclick*="checkoutasguest"], a[href*="checkoutasguest"]');
+        if (!el) return;
+
+        var target = el.getAttribute('onclick') || el.getAttribute('href') || '';
+        if (target.indexOf('checkoutasguest') === -1) return;
+
+        e.preventDefault();
+        e.stopImmediatePropagation();
+        window.location.href = '/checkout';
+    }, true);
+})();
+</script>

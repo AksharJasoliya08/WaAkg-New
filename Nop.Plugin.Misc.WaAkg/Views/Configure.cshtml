@@ -1,0 +1,783 @@
+@model ConfigurationModel
+
+@{
+    Layout = "_ConfigurePlugin";
+}
+
+<form asp-controller="WaAkgAdmin" asp-action="Configure" method="post" enctype="multipart/form-data">
+    <div class="cards-group">
+        <div class="card card-default">
+            <div class="card-body">
+
+                <nop-tabs id="waakg-tabs">
+
+                    @* ---------------- TAB 1 : CONNECTION ---------------- *@
+                    <nop-tab asp-name="tab-connection" asp-title="@T("Plugins.Misc.WaAkg.Tab.Connection")" asp-default="true">
+                        <div class="form-group row">
+                            <div class="col-md-3">
+                                <nop-label asp-for="Enabled" />
+                            </div>
+                            <div class="col-md-9">
+                                <nop-editor asp-for="Enabled" />
+                                <span asp-validation-for="Enabled"></span>
+                            </div>
+                        </div>
+                        <div class="form-group row">
+                            <div class="col-md-3">
+                                <nop-label asp-for="ApiBaseUrl" />
+                            </div>
+                            <div class="col-md-9">
+                                <nop-editor asp-for="ApiBaseUrl" />
+                                <span asp-validation-for="ApiBaseUrl"></span>
+                            </div>
+                        </div>
+                        <div class="form-group row">
+                            <div class="col-md-3">
+                                <nop-label asp-for="ApiKey" />
+                            </div>
+                            <div class="col-md-9">
+                                <nop-editor asp-for="ApiKey" />
+                                <span asp-validation-for="ApiKey"></span>
+                            </div>
+                        </div>
+                        <div class="form-group row">
+                            <div class="col-md-3">
+                                <nop-label asp-for="SessionId" />
+                            </div>
+                            <div class="col-md-9">
+                                <nop-editor asp-for="SessionId" />
+                                <span asp-validation-for="SessionId"></span>
+                            </div>
+                        </div>
+                        <div class="form-group row">
+                            <div class="col-md-3">
+                                <nop-label asp-for="DefaultCountryCode" />
+                            </div>
+                            <div class="col-md-9">
+                                <nop-editor asp-for="DefaultCountryCode" />
+                            </div>
+                        </div>
+
+                        <div class="form-group row">
+                            <div class="col-md-9 offset-md-3">
+                                <button type="button" id="waakg-test-connection" class="btn btn-info">
+                                    @T("Plugins.Misc.WaAkg.TestConnection")
+                                </button>
+                                <span id="waakg-test-result" style="margin-left:10px;font-weight:bold;"></span>
+                                <pre id="waakg-test-raw" style="display:none;margin-top:10px;max-height:200px;overflow:auto;"></pre>
+                            </div>
+                        </div>
+
+                        <div class="form-group row">
+                            <div class="col-md-3">
+                                <div class="label-wrapper"><label class="col-form-label">Send test message</label></div>
+                            </div>
+                            <div class="col-md-9">
+                                <input type="text" id="waakg-test-phone" class="form-control" placeholder="9876543210" style="max-width:260px;display:inline-block;" />
+                                <button type="button" id="waakg-send-test" class="btn btn-secondary">@T("Plugins.Misc.WaAkg.SendTest")</button>
+                                <span id="waakg-send-test-result" style="margin-left:10px;font-weight:bold;"></span>
+                            </div>
+                        </div>
+
+                        <div class="card card-default">
+                            <div class="card-header">Troubleshooting</div>
+                            <div class="card-body">
+                                <table class="table table-sm">
+                                    <tr><td><b>401 / 403</b></td><td>API key wrong or regenerated — update it above.</td></tr>
+                                    <tr><td><b>404</b></td><td>Wrong session ID. Use the session <i>ID</i>, not the session name.</td></tr>
+                                    <tr><td><b>500 / 503</b></td><td>"session not ready / disconnected" — open the gateway dashboard, Manage the session and re-scan the QR code.</td></tr>
+                                    <tr><td><b>Timeout</b></td><td>Hosting blocks the gateway's direct port. Keep the base URL pointed at the port 80 reverse proxy path.</td></tr>
+                                    <tr><td><b>Media arrives as text</b></td><td>The media endpoint needs multipart/form-data (file, type, caption), not JSON. This plugin already does that.</td></tr>
+                                </table>
+                            </div>
+                        </div>
+                    </nop-tab>
+
+                    @* ---------------- TAB 2 : TEMPLATES ---------------- *@
+                    <nop-tab asp-name="tab-templates" asp-title="@T("Plugins.Misc.WaAkg.Tab.Templates")">
+                        <div class="card card-default">
+                            <div class="card-body">
+                                <b>Available tokens:</b>
+                                <div style="margin-top:6px;">
+                                    @foreach (var token in Model.AvailableTokens)
+                                    {
+                                        <code style="margin-right:8px;">@token</code>
+                                    }
+                                </div>
+                                <div style="margin-top:6px;color:#666;">
+                                    WhatsApp formatting: <code>*bold*</code>, <code>_italic_</code>, <code>~strike~</code>. Use real line breaks.
+                                </div>
+                            </div>
+                        </div>
+
+                        @{
+                            var templates = new (string Name, string Title, string Value)[]
+                            {
+                                (nameof(Model.TemplateOrderPlaced), "Order placed", Model.TemplateOrderPlaced),
+                                (nameof(Model.TemplateCodAdvance), "COD advance request (auto-cancelled if paid first)", Model.TemplateCodAdvance),
+                                (nameof(Model.TemplateCodAdvancePaid), "COD advance paid (from order details)", Model.TemplateCodAdvancePaid),
+                                (nameof(Model.TemplateOrderPaid), "Order paid", Model.TemplateOrderPaid),
+                                (nameof(Model.TemplateShipment), "Shipped", Model.TemplateShipment),
+                                (nameof(Model.TemplateDelivered), "Delivered", Model.TemplateDelivered),
+                                (nameof(Model.TemplateCancelled), "Cancelled / refunded", Model.TemplateCancelled),
+                                (nameof(Model.TemplateWelcome), "Welcome", Model.TemplateWelcome),
+                                (nameof(Model.TemplateCartReminder), "Abandoned cart reminder (closing message)", Model.TemplateCartReminder),
+                                (nameof(Model.TemplateCodDue), "COD payment summary (paid vs due)", Model.TemplateCodDue)
+                            };
+                        }
+
+                        @foreach (var template in templates)
+                        {
+                            <div class="form-group row">
+                                <div class="col-md-3">
+                                    <div class="label-wrapper"><label class="col-form-label">@template.Title</label></div>
+                                </div>
+                                <div class="col-md-9">
+                                    <textarea name="@template.Name" class="form-control" rows="6">@template.Value</textarea>
+                                </div>
+                            </div>
+                        }
+
+                        <hr />
+                        <h5>Owner / admin notification templates</h5>
+
+                        @{
+                            var ownerTemplates = new (string Name, string Title, string Value)[]
+                            {
+                                (nameof(Model.TemplateOwnerOrderPlaced), "New order (owner copy)", Model.TemplateOwnerOrderPlaced),
+                                (nameof(Model.TemplateOwnerCod), "New COD order (owner copy)", Model.TemplateOwnerCod)
+                            };
+                        }
+
+                        @foreach (var template in ownerTemplates)
+                        {
+                            <div class="form-group row">
+                                <div class="col-md-3">
+                                    <div class="label-wrapper"><label class="col-form-label">@template.Title</label></div>
+                                </div>
+                                <div class="col-md-9">
+                                    <textarea name="@template.Name" class="form-control" rows="5">@template.Value</textarea>
+                                </div>
+                            </div>
+                        }
+                    </nop-tab>
+
+                    @* ---------------- TAB 3 : AUTOMATION ---------------- *@
+                    <nop-tab asp-name="tab-automation" asp-title="@T("Plugins.Misc.WaAkg.Tab.Automation")">
+                        @{
+                            var toggles = new (string Name, string Title, bool Value)[]
+                            {
+                                (nameof(Model.EnableOrderPlaced), "Order placed", Model.EnableOrderPlaced),
+                                (nameof(Model.EnableCodAdvance), "COD advance request", Model.EnableCodAdvance),
+                                (nameof(Model.EnableOrderPaid), "Order paid", Model.EnableOrderPaid),
+                                (nameof(Model.EnableShipment), "Shipment created", Model.EnableShipment),
+                                (nameof(Model.EnableDelivered), "Order completed / delivered", Model.EnableDelivered),
+                                (nameof(Model.EnableCancelled), "Order cancelled / refunded", Model.EnableCancelled),
+                                (nameof(Model.EnableWelcome), "Customer registered", Model.EnableWelcome),
+                                (nameof(Model.EnableCartReminder), "Abandoned cart reminder", Model.EnableCartReminder)
+                            };
+                        }
+
+                        @foreach (var toggle in toggles)
+                        {
+                            <div class="form-group row">
+                                <div class="col-md-3">
+                                    <div class="label-wrapper"><label class="col-form-label">@toggle.Title</label></div>
+                                </div>
+                                <div class="col-md-9">
+                                    <input type="checkbox" name="@toggle.Name" value="true" checked="@toggle.Value" />
+                                    <input type="hidden" name="@toggle.Name" value="false" />
+                                </div>
+                            </div>
+                        }
+
+                        <hr />
+
+                        <div class="form-group row">
+                            <div class="col-md-3"><nop-label asp-for="SendDelaySeconds" /></div>
+                            <div class="col-md-9"><nop-editor asp-for="SendDelaySeconds" /></div>
+                        </div>
+                        <div class="form-group row">
+                            <div class="col-md-3"><nop-label asp-for="MaxRetries" /></div>
+                            <div class="col-md-9"><nop-editor asp-for="MaxRetries" /></div>
+                        </div>
+                        <div class="form-group row">
+                            <div class="col-md-3"><nop-label asp-for="DailySendLimit" /></div>
+                            <div class="col-md-9"><nop-editor asp-for="DailySendLimit" /></div>
+                        </div>
+                        <div class="form-group row">
+                            <div class="col-md-3"><nop-label asp-for="QuietHourStart" /></div>
+                            <div class="col-md-9"><nop-editor asp-for="QuietHourStart" /></div>
+                        </div>
+                        <div class="form-group row">
+                            <div class="col-md-3"><nop-label asp-for="QuietHourEnd" /></div>
+                            <div class="col-md-9"><nop-editor asp-for="QuietHourEnd" /></div>
+                        </div>
+                        <div class="form-group row">
+                            <div class="col-md-3"><nop-label asp-for="RequireOptIn" /></div>
+                            <div class="col-md-9"><nop-editor asp-for="RequireOptIn" /></div>
+                        </div>
+                        <div class="form-group row">
+                            <div class="col-md-3"><nop-label asp-for="OptInCheckedByDefault" /></div>
+                            <div class="col-md-9"><nop-editor asp-for="OptInCheckedByDefault" /></div>
+                        </div>
+                        <div class="form-group row">
+                            <div class="col-md-3"><nop-label asp-for="CartReminderHours" /></div>
+                            <div class="col-md-9"><nop-editor asp-for="CartReminderHours" /></div>
+                        </div>
+                        <div class="form-group row">
+                            <div class="col-md-3"><nop-label asp-for="CartReminderCoupon" /></div>
+                            <div class="col-md-9"><nop-editor asp-for="CartReminderCoupon" /></div>
+                        </div>
+                        <div class="form-group row">
+                            <div class="col-md-3"><nop-label asp-for="PaymentLink" /></div>
+                            <div class="col-md-9"><nop-editor asp-for="PaymentLink" /></div>
+                        </div>
+                        <div class="form-group row">
+                            <div class="col-md-3"><nop-label asp-for="OrderTrackUrlPattern" /></div>
+                            <div class="col-md-9">
+                                <nop-editor asp-for="OrderTrackUrlPattern" />
+                                <small class="form-text text-muted">
+                                    Builds the %TrackUrl% token (the customer's own order details page, used in
+                                    Order Placed, COD Advance and Shipped). {0} = store URL, {1} = order id.
+                                    Default: <code>{0}orderdetails/{1}</code>
+                                </small>
+                            </div>
+                        </div>
+                        <div class="form-group row">
+                            <div class="col-md-3"><nop-label asp-for="CodInfoLookupDelaySeconds" /></div>
+                            <div class="col-md-9">
+                                <nop-editor asp-for="CodInfoLookupDelaySeconds" />
+                                <small class="form-text text-muted">
+                                    How long to wait before checking the Advanced COD amounts (paid/due) for a
+                                    COD order, so the other plugin has time to record them first.
+                                </small>
+                            </div>
+                        </div>
+
+                        <hr />
+                        <h5>Owner / admin notifications</h5>
+
+                        <div class="form-group row">
+                            <div class="col-md-3"><nop-label asp-for="OwnerNotificationsEnabled" /></div>
+                            <div class="col-md-9"><nop-editor asp-for="OwnerNotificationsEnabled" /></div>
+                        </div>
+                        <div class="form-group row">
+                            <div class="col-md-3"><nop-label asp-for="OwnerNotificationNumbers" /></div>
+                            <div class="col-md-9">
+                                <nop-editor asp-for="OwnerNotificationNumbers" />
+                                <small class="form-text text-muted">
+                                    One or more WhatsApp numbers to receive a copy of every new order (and COD
+                                    orders separately). Comma or newline separated, e.g. 9876543210, 9812345678.
+                                </small>
+                            </div>
+                        </div>
+                    </nop-tab>
+
+                    @* ---------------- TAB 4 : QUEUE ---------------- *@
+                    <nop-tab asp-name="tab-queue" asp-title="@T("Plugins.Misc.WaAkg.Tab.Queue")">
+                        <div class="form-group row">
+                            <div class="col-md-3">
+                                <div class="label-wrapper"><label class="col-form-label">Status</label></div>
+                            </div>
+                            <div class="col-md-3">
+                                <select id="waakg-q-status" class="form-control">
+                                    @foreach (var item in Model.Queue.AvailableStatuses)
+                                    {
+                                        <option value="@item.Value">@item.Text</option>
+                                    }
+                                </select>
+                            </div>
+                            <div class="col-md-2">
+                                <div class="label-wrapper"><label class="col-form-label">Event</label></div>
+                            </div>
+                            <div class="col-md-3">
+                                <select id="waakg-q-event" class="form-control">
+                                    @foreach (var item in Model.Queue.AvailableEvents)
+                                    {
+                                        <option value="@item.Value">@item.Text</option>
+                                    }
+                                </select>
+                            </div>
+                        </div>
+                        <div class="form-group row">
+                            <div class="col-md-9 offset-md-3">
+                                <button type="button" id="waakg-q-search" class="btn btn-primary btn-search">
+                                    <i class="fas fa-magnifying-glass"></i> Search
+                                </button>
+                                <button type="button" id="waakg-q-refresh" class="btn btn-default">
+                                    <i class="fas fa-rotate"></i> Refresh
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="table-responsive">
+                            <table class="table table-bordered table-sm" id="waakg-queue-table">
+                                <thead>
+                                    <tr>
+                                        <th>Phone</th>
+                                        <th>Event</th>
+                                        <th>Status</th>
+                                        <th>Retries</th>
+                                        <th>Message</th>
+                                        <th>Last error</th>
+                                        <th>Scheduled</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="waakg-queue-tbody">
+                                    <tr>
+                                        <td colspan="8" class="text-center">Loading…</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div id="waakg-queue-summary" style="color:#666;"></div>
+                            <div>
+                                <button type="button" id="waakg-q-prev" class="btn btn-default btn-sm">&laquo; Prev</button>
+                                <span id="waakg-q-pageinfo" style="margin:0 8px;"></span>
+                                <button type="button" id="waakg-q-next" class="btn btn-default btn-sm">Next &raquo;</button>
+                            </div>
+                        </div>
+
+                        <script asp-location="Footer">
+                            (function () {
+                                var state = { page: 1, pageSize: 20 };
+
+                                function escapeHtml(text) {
+                                    if (text === null || text === undefined) return '';
+                                    return String(text)
+                                        .replace(/&/g, '&amp;')
+                                        .replace(/</g, '&lt;')
+                                        .replace(/>/g, '&gt;')
+                                        .replace(/"/g, '&quot;');
+                                }
+
+                                function statusBadge(status) {
+                                    var cls = status === 'Sent' ? 'badge-success'
+                                        : status === 'Failed' ? 'badge-danger'
+                                        : 'badge-warning';
+                                    return '<span class="badge ' + cls + '">' + escapeHtml(status) + '</span>';
+                                }
+
+                                function rowHtml(row) {
+                                    var msg = row.Message ? escapeHtml(row.Message) : '';
+                                    var err = row.LastError ? escapeHtml(row.LastError) : '';
+                                    var scheduled = row.ScheduledOn ? new Date(row.ScheduledOn).toLocaleString() : '';
+
+                                    return '<tr>' +
+                                        '<td>' + escapeHtml(row.Phone) + '</td>' +
+                                        '<td>' + escapeHtml(row.EventName) + '</td>' +
+                                        '<td>' + statusBadge(row.Status) + '</td>' +
+                                        '<td>' + row.Retries + '</td>' +
+                                        '<td style="max-width:280px;white-space:pre-wrap;">' + msg + '</td>' +
+                                        '<td style="max-width:220px;white-space:pre-wrap;color:#c00;">' + err + '</td>' +
+                                        '<td>' + escapeHtml(scheduled) + '</td>' +
+                                        '<td class="text-nowrap">' +
+                                            '<button type="button" class="btn btn-default btn-sm" onclick="waakgRetry(' + row.Id + ')">Retry</button> ' +
+                                            '<button type="button" class="btn btn-danger btn-sm" onclick="waakgDelete(' + row.Id + ')">Delete</button>' +
+                                        '</td>' +
+                                    '</tr>';
+                                }
+
+                                function loadQueue() {
+                                    var $tbody = $('#waakg-queue-tbody');
+                                    $tbody.html('<tr><td colspan="8" class="text-center">Loading…</td></tr>');
+
+                                    $.ajax({
+                                        cache: false,
+                                        type: 'POST',
+                                        url: '@(Url.Action("QueueList", "WaAkgAdmin", new { area = "Admin" }))',
+                                        data: addAntiForgeryToken({
+                                            searchStatusId: $('#waakg-q-status').val(),
+                                            searchEventName: $('#waakg-q-event').val(),
+                                            page: state.page,
+                                            pageSize: state.pageSize
+                                        }),
+                                        success: function (response) {
+                                            var items = (response && response.Data) || [];
+
+                                            if (!items.length) {
+                                                $tbody.html('<tr><td colspan="8" class="text-center">No messages found.</td></tr>');
+                                            } else {
+                                                var html = '';
+                                                for (var i = 0; i < items.length; i++) html += rowHtml(items[i]);
+                                                $tbody.html(html);
+                                            }
+
+                                            var total = (response && response.Total) || items.length;
+                                            var totalPages = Math.max(1, Math.ceil(total / state.pageSize));
+                                            $('#waakg-queue-summary').text(total + ' message(s) total.');
+                                            $('#waakg-q-pageinfo').text('Page ' + state.page + ' of ' + totalPages);
+                                        },
+                                        error: function () {
+                                            $tbody.html('<tr><td colspan="8" class="text-center" style="color:#c00;">Failed to load the queue.</td></tr>');
+                                        }
+                                    });
+                                }
+
+                                window.waakgRetry = function (id) {
+                                    $.ajax({
+                                        cache: false,
+                                        type: 'POST',
+                                        url: '@(Url.Action("RetryMessage", "WaAkgAdmin", new { area = "Admin" }))',
+                                        data: addAntiForgeryToken({ id: id }),
+                                        success: function () { loadQueue(); }
+                                    });
+                                };
+
+                                window.waakgDelete = function (id) {
+                                    if (!confirm('Delete this queued message?')) return;
+                                    $.ajax({
+                                        cache: false,
+                                        type: 'POST',
+                                        url: '@(Url.Action("DeleteMessage", "WaAkgAdmin", new { area = "Admin" }))',
+                                        data: addAntiForgeryToken({ id: id }),
+                                        success: function () { loadQueue(); }
+                                    });
+                                };
+
+                                $('#waakg-q-search').on('click', function () { state.page = 1; loadQueue(); });
+                                $('#waakg-q-refresh').on('click', function () { loadQueue(); });
+                                $('#waakg-q-prev').on('click', function () { if (state.page > 1) { state.page--; loadQueue(); } });
+                                $('#waakg-q-next').on('click', function () { state.page++; loadQueue(); });
+
+                                // load once when the Queue tab becomes visible, not while it's hidden (display:none has 0 width)
+                                $('a[href="#tab-queue"]').one('shown.bs.tab', loadQueue);
+                                if ($('#tab-queue').is(':visible')) loadQueue();
+                            })();
+                        </script>
+                    </nop-tab>
+
+                    @* ---------------- TAB 5 : BROADCAST ---------------- *@
+                    <nop-tab asp-name="tab-broadcast" asp-title="@T("Plugins.Misc.WaAkg.Tab.Broadcast")">
+                        <div class="alert alert-warning">
+                            Only message people who asked to hear from you. Bulk sending to purchased or scraped
+                            lists gets the WhatsApp number banned very quickly, whatever delay is used.
+                        </div>
+
+                        <div class="form-group row">
+                            <div class="col-md-3"><nop-label asp-for="Broadcast.Recipients" /></div>
+                            <div class="col-md-9">
+                                <textarea asp-for="Broadcast.Recipients" class="form-control" rows="6" placeholder="9876543210, 9812345678"></textarea>
+                            </div>
+                        </div>
+                        <div class="form-group row">
+                            <div class="col-md-3"><nop-label asp-for="Broadcast.CsvFile" /></div>
+                            <div class="col-md-9"><input type="file" name="Broadcast.CsvFile" accept=".csv,.txt" /></div>
+                        </div>
+                        <div class="form-group row">
+                            <div class="col-md-3"><nop-label asp-for="Broadcast.Message" /></div>
+                            <div class="col-md-9">
+                                <textarea asp-for="Broadcast.Message" class="form-control" rows="6"></textarea>
+                            </div>
+                        </div>
+                        <div class="form-group row">
+                            <div class="col-md-3"><nop-label asp-for="Broadcast.MediaFile" /></div>
+                            <div class="col-md-9">
+                                <input type="file" name="Broadcast.MediaFile" accept="image/*,video/*,application/pdf,.doc,.docx" />
+                                <small class="form-text text-muted">
+                                    Upload an image, video, PDF or Word file. It is saved on this store and sent as
+                                    a link, since the gateway only accepts media by URL. Overrides "Media URL" below.
+                                </small>
+                            </div>
+                        </div>
+                        <div class="form-group row">
+                            <div class="col-md-3"><nop-label asp-for="Broadcast.MediaUrl" /></div>
+                            <div class="col-md-9">
+                                <nop-editor asp-for="Broadcast.MediaUrl" />
+                                <small class="form-text text-muted">Or paste a public image/video/PDF URL directly.</small>
+                            </div>
+                        </div>
+                        <div class="form-group row">
+                            <div class="col-md-3"><nop-label asp-for="Broadcast.MimeType" /></div>
+                            <div class="col-md-9">
+                                <nop-editor asp-for="Broadcast.MimeType" />
+                                <small class="form-text text-muted">Only needed when using "Media URL" above (e.g. image/jpeg, application/pdf). Auto-detected for uploads.</small>
+                            </div>
+                        </div>
+                        <div class="form-group row">
+                            <div class="col-md-3"><nop-label asp-for="Broadcast.DelayMs" /></div>
+                            <div class="col-md-9"><nop-editor asp-for="Broadcast.DelayMs" /></div>
+                        </div>
+                        <div class="form-group row">
+                            <div class="col-md-3"><nop-label asp-for="Broadcast.UseQueue" /></div>
+                            <div class="col-md-9"><nop-editor asp-for="Broadcast.UseQueue" /></div>
+                        </div>
+                        <div class="form-group row">
+                            <div class="col-md-9 offset-md-3">
+                                <button type="submit" id="waakg-broadcast-send" name="broadcast" value="broadcast" class="btn btn-primary">
+                                    Send campaign
+                                </button>
+                                <button type="button" id="waakg-broadcast-stop" class="btn btn-danger">
+                                    Stop pending broadcast
+                                </button>
+                                <span id="waakg-broadcast-stop-result" style="margin-left:10px;font-weight:bold;"></span>
+                            </div>
+                        </div>
+
+                        <script asp-location="Footer">
+                            // stop a double click (or an accidental double-tap on mobile) from
+                            // submitting the same campaign twice - the button disables the instant
+                            // the form starts submitting and never re-enables on this page load
+                            (function () {
+                                var $btn = $('#waakg-broadcast-send');
+                                $btn.closest('form').on('submit', function () {
+                                    if ($btn.data('submitted')) return false;
+                                    $btn.data('submitted', true);
+                                    $btn.prop('disabled', true).text('Sending…');
+                                });
+
+                                $('#waakg-broadcast-stop').on('click', function () {
+                                    if (!confirm('Delete every still-unsent Broadcast message from the queue? Messages already sent are not affected.')) return;
+                                    var $result = $('#waakg-broadcast-stop-result').text('Stopping…');
+                                    $.ajax({
+                                        cache: false,
+                                        type: 'POST',
+                                        url: '@(Url.Action("StopBroadcast", "WaAkgAdmin", new { area = "Admin" }))',
+                                        data: addAntiForgeryToken({}),
+                                        success: function (response) {
+                                            $result.text(response.message).css('color', 'green');
+                                        },
+                                        error: function () {
+                                            $result.text('Request failed').css('color', 'red');
+                                        }
+                                    });
+                                });
+                            })();
+                        </script>
+                    </nop-tab>
+
+                    @* ---------------- TAB 6 : WHATSAPP OTP LOGIN ---------------- *@
+                    <nop-tab asp-name="tab-whatsapp-otp" asp-title="@T("Plugins.Misc.WaAkg.Tab.WhatsAppOtp")">
+                        <div class="form-group row">
+                            <div class="col-md-3">
+                                <nop-label asp-for="EnableWhatsAppOtp" />
+                            </div>
+                            <div class="col-md-9">
+                                <nop-editor asp-for="EnableWhatsAppOtp" />
+                                <span asp-validation-for="EnableWhatsAppOtp"></span>
+                            </div>
+                        </div>
+                        <div class="form-group row">
+                            <div class="col-md-3">
+                                <nop-label asp-for="BypassNativeLoginForGuestCheckout" />
+                            </div>
+                            <div class="col-md-9">
+                                <nop-editor asp-for="BypassNativeLoginForGuestCheckout" />
+                                <span asp-validation-for="BypassNativeLoginForGuestCheckout"></span>
+                            </div>
+                        </div>
+                        <div class="form-group row">
+                            <div class="col-md-3">
+                                <nop-label asp-for="OtpExpiryMinutes" />
+                            </div>
+                            <div class="col-md-9">
+                                <nop-editor asp-for="OtpExpiryMinutes" />
+                            </div>
+                        </div>
+                        <div class="form-group row">
+                            <div class="col-md-3">
+                                <nop-label asp-for="OtpMaxAttempts" />
+                            </div>
+                            <div class="col-md-9">
+                                <nop-editor asp-for="OtpMaxAttempts" />
+                            </div>
+                        </div>
+                        <div class="form-group row">
+                            <div class="col-md-3">
+                                <nop-label asp-for="OtpResendCooldownSec" />
+                            </div>
+                            <div class="col-md-9">
+                                <nop-editor asp-for="OtpResendCooldownSec" />
+                            </div>
+                        </div>
+                        <div class="form-group row">
+                            <div class="col-md-3">
+                                <div class="label-wrapper"><label class="col-form-label">OTP message (%OTP%, %ExpiryMin%)</label></div>
+                            </div>
+                            <div class="col-md-9">
+                                <textarea asp-for="OtpMessageTemplate" class="form-control" rows="3"></textarea>
+                            </div>
+                        </div>
+                        <div class="form-group row">
+                            <div class="col-md-3">
+                                <div class="label-wrapper"><label class="col-form-label">Temp password message (%PASSWORD%, %StoreUrl%)</label></div>
+                            </div>
+                            <div class="col-md-9">
+                                <textarea asp-for="OtpPasswordTemplate" class="form-control" rows="3"></textarea>
+                            </div>
+                        </div>
+                    </nop-tab>
+
+                    @* ---------------- TAB 7 : ERRORS ---------------- *@
+                    <nop-tab asp-name="tab-errors" asp-title="Errors">
+                        <div class="form-group row">
+                            <div class="col-md-9 offset-md-3">
+                                <button type="button" id="waakg-e-refresh" class="btn btn-default">
+                                    <i class="fas fa-rotate"></i> Refresh
+                                </button>
+                                <button type="button" id="waakg-e-clear" class="btn btn-danger">
+                                    <i class="fas fa-trash"></i> Clear all
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="table-responsive">
+                            <table class="table table-bordered table-sm" id="waakg-error-table">
+                                <thead>
+                                    <tr>
+                                        <th>When</th>
+                                        <th>Source</th>
+                                        <th>Phone</th>
+                                        <th>Message</th>
+                                        <th>Detail</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="waakg-error-tbody">
+                                    <tr><td colspan="5" class="text-center">Loading…</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div id="waakg-error-summary" style="color:#666;"></div>
+                            <div>
+                                <button type="button" id="waakg-e-prev" class="btn btn-default btn-sm">&laquo; Prev</button>
+                                <span id="waakg-e-pageinfo" style="margin:0 8px;"></span>
+                                <button type="button" id="waakg-e-next" class="btn btn-default btn-sm">Next &raquo;</button>
+                            </div>
+                        </div>
+
+                        <script asp-location="Footer">
+                            (function () {
+                                var state = { page: 1, pageSize: 20 };
+
+                                function escapeHtml(text) {
+                                    if (text === null || text === undefined) return '';
+                                    return String(text)
+                                        .replace(/&/g, '&amp;')
+                                        .replace(/</g, '&lt;')
+                                        .replace(/>/g, '&gt;')
+                                        .replace(/"/g, '&quot;');
+                                }
+
+                                function rowHtml(row) {
+                                    var when = row.CreatedOn ? new Date(row.CreatedOn).toLocaleString() : '';
+                                    return '<tr>' +
+                                        '<td>' + escapeHtml(when) + '</td>' +
+                                        '<td>' + escapeHtml(row.Source) + '</td>' +
+                                        '<td>' + escapeHtml(row.Phone) + '</td>' +
+                                        '<td style="max-width:260px;white-space:pre-wrap;color:#c00;">' + escapeHtml(row.Message) + '</td>' +
+                                        '<td style="max-width:320px;white-space:pre-wrap;font-size:11px;color:#666;">' + escapeHtml(row.Detail) + '</td>' +
+                                    '</tr>';
+                                }
+
+                                function loadErrors() {
+                                    var $tbody = $('#waakg-error-tbody');
+                                    $tbody.html('<tr><td colspan="5" class="text-center">Loading…</td></tr>');
+
+                                    $.ajax({
+                                        cache: false,
+                                        type: 'POST',
+                                        url: '@(Url.Action("ErrorList", "WaAkgAdmin", new { area = "Admin" }))',
+                                        data: addAntiForgeryToken({ page: state.page, pageSize: state.pageSize }),
+                                        success: function (response) {
+                                            var items = (response && response.Data) || [];
+
+                                            if (!items.length) {
+                                                $tbody.html('<tr><td colspan="5" class="text-center">No errors recorded.</td></tr>');
+                                            } else {
+                                                var html = '';
+                                                for (var i = 0; i < items.length; i++) html += rowHtml(items[i]);
+                                                $tbody.html(html);
+                                            }
+
+                                            var total = (response && response.Total) || items.length;
+                                            var totalPages = Math.max(1, Math.ceil(total / state.pageSize));
+                                            $('#waakg-error-summary').text(total + ' error(s) total.');
+                                            $('#waakg-e-pageinfo').text('Page ' + state.page + ' of ' + totalPages);
+                                        },
+                                        error: function () {
+                                            $tbody.html('<tr><td colspan="5" class="text-center" style="color:#c00;">Failed to load errors.</td></tr>');
+                                        }
+                                    });
+                                }
+
+                                $('#waakg-e-refresh').on('click', loadErrors);
+                                $('#waakg-e-prev').on('click', function () { if (state.page > 1) { state.page--; loadErrors(); } });
+                                $('#waakg-e-next').on('click', function () { state.page++; loadErrors(); });
+                                $('#waakg-e-clear').on('click', function () {
+                                    if (!confirm('Delete every error log entry?')) return;
+                                    $.ajax({
+                                        cache: false,
+                                        type: 'POST',
+                                        url: '@(Url.Action("ClearErrors", "WaAkgAdmin", new { area = "Admin" }))',
+                                        data: addAntiForgeryToken({}),
+                                        success: function () { state.page = 1; loadErrors(); }
+                                    });
+                                });
+
+                                $('a[href="#tab-errors"]').one('shown.bs.tab', loadErrors);
+                                if ($('#tab-errors').is(':visible')) loadErrors();
+                            })();
+                        </script>
+                    </nop-tab>
+
+                </nop-tabs>
+
+                <div class="form-group row">
+                    <div class="col-md-9 offset-md-3">
+                        <button type="submit" name="save" value="save" class="btn btn-primary">@T("Admin.Common.Save")</button>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+</form>
+
+<script asp-location="Footer">
+    $(function () {
+        $('#waakg-test-connection').on('click', function () {
+            var $result = $('#waakg-test-result').removeClass().text('Testing…');
+            $.ajax({
+                cache: false,
+                type: 'POST',
+                url: '@(Url.Action("TestConnection", "WaAkgAdmin", new { area = "Admin" }))',
+                data: addAntiForgeryToken({
+                    apiBaseUrl: $('#ApiBaseUrl').val(),
+                    apiKey: $('#ApiKey').val(),
+                    sessionId: $('#SessionId').val()
+                }),
+                success: function (response) {
+                    $result.text(response.message).css('color', response.success ? 'green' : 'red');
+                    if (response.raw) {
+                        $('#waakg-test-raw').show().text(response.raw);
+                    }
+                },
+                error: function () {
+                    $result.text('Request failed').css('color', 'red');
+                }
+            });
+        });
+
+        $('#waakg-send-test').on('click', function () {
+            var $result = $('#waakg-send-test-result').text('Sending…');
+            $.ajax({
+                cache: false,
+                type: 'POST',
+                url: '@(Url.Action("SendTest", "WaAkgAdmin", new { area = "Admin" }))',
+                data: addAntiForgeryToken({ phone: $('#waakg-test-phone').val(), message: '' }),
+                success: function (response) {
+                    $result.text(response.message).css('color', response.success ? 'green' : 'red');
+                },
+                error: function () {
+                    $result.text('Request failed').css('color', 'red');
+                }
+            });
+        });
+    });
+</script>

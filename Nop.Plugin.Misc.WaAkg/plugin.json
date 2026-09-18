@@ -1,0 +1,11 @@
+{
+  "Group": "Misc",
+  "FriendlyName": "WhatsApp Automation Suite (WA-AKG)",
+  "SystemName": "Misc.WaAkg",
+  "Version": "1.49",
+  "SupportedVersions": [ "4.90" ],
+  "Author": "Akshar - The Malas Jewelry",
+  "DisplayOrder": 1,
+  "FileName": "Nop.Plugin.Misc.WaAkg.dll",
+  "Description": "Transactional + marketing WhatsApp automation via the WA-AKG gateway: order placed, COD advance, paid, shipped, delivered, cancelled, welcome, abandoned-cart reminder, queue with anti-ban throttling and bulk broadcast."
+}

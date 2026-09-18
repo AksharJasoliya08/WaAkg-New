@@ -1,0 +1,215 @@
+@model bool
+
+<style>
+    .wa-akg-optin-wrapper {
+        width: 100%;
+        margin: 18px 0 24px;
+    }
+
+    .wa-akg-optin {
+        display: flex;
+        align-items: center;
+        justify-content: flex-start;
+        gap: 12px;
+        width: 100%;
+        min-height: 72px;
+        padding: 16px 20px;
+        box-sizing: border-box;
+        background: #fffaf4;
+        border: 1px solid #e4d4bd;
+        border-radius: 12px;
+        transition: background 0.25s ease, border-color 0.25s ease;
+        cursor: pointer;
+    }
+
+    .wa-akg-optin:hover {
+        background: #fff8ef;
+        border-color: #6b456f;
+    }
+
+    /* Custom checkbox */
+    .wa-akg-optin input[type="checkbox"] {
+        appearance: none;
+        -webkit-appearance: none;
+        flex: 0 0 22px;
+        width: 22px;
+        height: 22px;
+        margin: 0;
+        border: 1.8px solid #6b456f;
+        border-radius: 5px;
+        background: #ffffff;
+        cursor: pointer;
+        position: relative;
+        transition: all 0.2s ease;
+    }
+
+    .wa-akg-optin input[type="checkbox"]:checked {
+        background: #321936;
+        border-color: #321936;
+    }
+
+    .wa-akg-optin input[type="checkbox"]:checked::after {
+        content: "";
+        position: absolute;
+        left: 6px;
+        top: 2px;
+        width: 6px;
+        height: 11px;
+        border: solid #ffffff;
+        border-width: 0 2px 2px 0;
+        transform: rotate(45deg);
+    }
+
+    /* Text and WhatsApp icon wrapper */
+    .wa-akg-optin-label {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        flex: 1;
+        min-width: 0;
+        margin: 0;
+        color: #321936;
+        font-size: 15px;
+        font-weight: 600;
+        line-height: 1.4;
+        cursor: pointer;
+        user-select: none;
+    }
+
+    /* WhatsApp icon */
+    .wa-akg-optin-label i {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        flex: 0 0 28px;
+        width: 28px;
+        height: 28px;
+        color: #25d366;
+        font-size: 28px;
+        line-height: 1;
+    }
+
+    .wa-akg-optin-content {
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        min-width: 0;
+    }
+
+    .wa-akg-optin-title {
+        display: block;
+        color: #321936;
+        font-size: 15px;
+        font-weight: 600;
+        line-height: 1.4;
+    }
+
+    .wa-akg-optin-note {
+        display: block;
+        margin-top: 5px;
+        color: #777777;
+        font-size: 12px;
+        font-weight: 400;
+        line-height: 1.4;
+    }
+
+    /* Mobile responsive */
+    @@media (max-width: 767px) {
+        .wa-akg-optin-wrapper {
+            margin: 14px 0 20px;
+        }
+
+        .wa-akg-optin {
+            min-height: 64px;
+            padding: 14px 15px;
+            gap: 10px;
+            border-radius: 10px;
+        }
+
+        .wa-akg-optin input[type="checkbox"] {
+            flex-basis: 20px;
+            width: 20px;
+            height: 20px;
+        }
+
+        .wa-akg-optin input[type="checkbox"]:checked::after {
+            left: 5px;
+            top: 1px;
+            width: 6px;
+            height: 10px;
+        }
+
+        .wa-akg-optin-label {
+            gap: 9px;
+        }
+
+        .wa-akg-optin-label i {
+            flex-basis: 25px;
+            width: 25px;
+            height: 25px;
+            font-size: 25px;
+        }
+
+        .wa-akg-optin-title {
+            font-size: 14px;
+        }
+
+        .wa-akg-optin-note {
+            margin-top: 4px;
+            font-size: 11px;
+        }
+    }
+</style>
+
+<div class="wa-akg-optin-wrapper">
+    <label class="wa-akg-optin" for="wa-akg-optin">
+
+        <input type="checkbox"
+               id="wa-akg-optin"
+               name="WaAkgOptIn"
+               value="true"
+               @(Model ? "checked" : "") />
+
+        <span class="wa-akg-optin-label">
+            <i class="fab fa-whatsapp" aria-hidden="true"></i>
+
+            <span class="wa-akg-optin-content">
+                <span class="wa-akg-optin-title">
+                    Get order updates on WhatsApp
+                </span>
+
+                <small class="wa-akg-optin-note">
+                    Receive order confirmation and delivery updates
+                </small>
+            </span>
+        </span>
+
+    </label>
+</div>
+
+<script asp-location="Footer">
+    $(function () {
+
+        $('#wa-akg-optin').on('change', function () {
+            $.ajax({
+                cache: false,
+                type: 'POST',
+                url: '/wa-akg/save-opt-in',
+                data: {
+                    optIn: $(this).is(':checked')
+                }
+            });
+        });
+
+        // Save the initial/default opt-in state
+        $.ajax({
+            cache: false,
+            type: 'POST',
+            url: '/wa-akg/save-opt-in',
+            data: {
+                optIn: $('#wa-akg-optin').is(':checked')
+            }
+        });
+
+    });
+</script>
