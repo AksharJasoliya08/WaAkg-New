@@ -10,6 +10,7 @@ using Nop.Services.Messages;
 using Nop.Services.Security;
 using Nop.Web.Framework;
 using Nop.Web.Framework.Controllers;
+using Nop.Web.Framework.Models;
 using Nop.Web.Framework.Models.Extensions;
 using Nop.Web.Framework.Mvc.Filters;
 
@@ -35,6 +36,7 @@ public class WaAkgAdminController : BasePluginController
     protected readonly IWaAkgTokenService _tokenService;
     protected readonly IWaAkgErrorLogService _errorLogService;
     protected readonly IWaAkgMediaUploadService _mediaUploadService;
+    protected readonly IWaAkgDeletedCustomerService _deletedCustomerService;
     protected readonly WaAkgSettings _settings;
 
     #endregion
@@ -51,6 +53,7 @@ public class WaAkgAdminController : BasePluginController
         IWaAkgTokenService tokenService,
         IWaAkgErrorLogService errorLogService,
         IWaAkgMediaUploadService mediaUploadService,
+        IWaAkgDeletedCustomerService deletedCustomerService,
         WaAkgSettings settings)
     {
         _dateTimeHelper = dateTimeHelper;
@@ -63,6 +66,7 @@ public class WaAkgAdminController : BasePluginController
         _tokenService = tokenService;
         _errorLogService = errorLogService;
         _mediaUploadService = mediaUploadService;
+        _deletedCustomerService = deletedCustomerService;
         _settings = settings;
     }
 
@@ -589,6 +593,79 @@ public class WaAkgAdminController : BasePluginController
 
         await _errorLogService.ClearAsync();
         return Json(new { success = true });
+    }
+
+    #endregion
+
+    #region Deleted Customers Management
+
+    [HttpPost]
+    public virtual async Task<IActionResult> DeletedCustomerList(GridCommand command)
+    {
+        if (!await HasAccessAsync())
+            return Json(new { Success = false, Message = "Access denied." });
+
+        var deletedCustomers = await _deletedCustomerService.SearchAsync(
+            pageIndex: command.Page - 1,
+            pageSize: command.PageSize
+        );
+
+        var gridModel = new GridModel<WaAkgDeletedCustomerModel>
+        {
+            Data = deletedCustomers.Select(x => new WaAkgDeletedCustomerModel
+            {
+                Id = x.Id,
+                CustomerId = x.CustomerId,
+                Email = x.Email,
+                Username = x.Username,
+                Phone = x.Phone,
+                FullName = x.FullName,
+                DeletedOnUtc = x.DeletedOnUtc,
+                Reason = x.Reason,
+                Notes = x.Notes
+            }),
+            Total = deletedCustomers.TotalCount
+        };
+
+        return Json(gridModel);
+    }
+
+    [HttpPost]
+    public virtual async Task<IActionResult> RecoverDeletedCustomer(int id)
+    {
+        try 
+        {
+            if (!await HasAccessAsync())
+                return Json(new { Success = false, Message = "Access denied." });
+
+            var result = await _deletedCustomerService.RecoverAsync(id);
+            
+            if (result)
+                return Json(new { Success = true, Message = "Customer recovered successfully." });
+            else
+                return Json(new { Success = false, Message = "Customer could not be recovered. The original customer record may no longer exist." });
+        }
+        catch (Exception ex)
+        {
+            return Json(new { Success = false, Message = ex.Message });
+        }
+    }
+
+    [HttpPost]
+    public virtual async Task<IActionResult> PermanentDeleteCustomer(int id)
+    {
+        try 
+        {
+            if (!await HasAccessAsync())
+                return Json(new { Success = false, Message = "Access denied." });
+
+            await _deletedCustomerService.PermanentDeleteAsync(id, deleteFromNopCommerce: false);
+            return Json(new { Success = true, Message = "Customer permanently deleted." });
+        }
+        catch (Exception ex)
+        {
+            return Json(new { Success = false, Message = ex.Message });
+        }
     }
 
     #endregion

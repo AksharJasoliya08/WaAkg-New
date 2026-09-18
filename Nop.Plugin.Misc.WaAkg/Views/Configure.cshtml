@@ -726,6 +726,18 @@
                         </script>
                     </nop-tab>
 
+                    @* ---------------- TAB 4 : DELETED CUSTOMERS ---------------- *@
+                    <nop-tab asp-name="tab-deleted-customers" asp-title="@T("Plugins.Misc.WaAkg.Tab.DeletedCustomers")">
+                        <div class="card card-default">
+                            <div class="card-body">
+                                <p>Manage soft-deleted customers here. You can recover them to allow login again or permanently delete them.</p>
+                                <button type="button" id="btn-view-deleted-customers" class="btn btn-primary">
+                                    <i class="fa fa-trash"></i> View Deleted Customers
+                                </button>
+                            </div>
+                        </div>
+                    </nop-tab>
+
                 </nop-tabs>
 
                 <div class="form-group row">
@@ -780,4 +792,144 @@
             });
         });
     });
+
+    // Modal and Grid for Deleted Customers
+    $(document).ready(function () {
+        // Open Modal and Load Grid
+        $('#btn-view-deleted-customers').click(function () {
+            $('#modal-deleted-customers').modal('show');
+            
+            // Initialize Grid if not already done
+            if ($("#deleted-customers-grid").data("kendoGrid") === undefined) {
+                $("#deleted-customers-grid").kendoGrid({
+                    dataSource: {
+                        type: "json",
+                        transport: {
+                            read: {
+                                url: "@Url.Action("DeletedCustomerList", "WaAkgAdmin", new { area = "Admin" })",
+                                type: "POST",
+                                dataType: "json"
+                            }
+                        },
+                        pageSize: 20,
+                        serverPaging: true,
+                        serverSorting: true
+                    },
+                    pageable: {
+                        refresh: true,
+                        pageSizes: true
+                    },
+                    columns: [
+                        {
+                            field: "Email",
+                            title: "Email"
+                        },
+                        {
+                            field: "Username",
+                            title: "Username"
+                        },
+                        {
+                            field: "Phone",
+                            title: "Mobile No"
+                        },
+                        {
+                            field: "FullName",
+                            title: "Full Name"
+                        },
+                        {
+                            field: "DeletedOnUtc",
+                            title: "Deleted Date",
+                            template: '#= kendo.toString(kendo.parseDate(DeletedOnUtc), "dd/MM/yyyy HH:mm") #'
+                        },
+                        {
+                            field: "Id",
+                            title: "Actions",
+                            width: 250,
+                            template: `
+                                <button onclick="recoverCustomer(#= Id #)" class="btn btn-success btn-sm">
+                                    <i class="fa fa-undo"></i> Recover
+                                </button>
+                                <button onclick="permanentDeleteCustomer(#= Id #)" class="btn btn-danger btn-sm">
+                                    <i class="fa fa-times"></i> Permanent Delete
+                                </button>
+                            `
+                        }
+                    ]
+                });
+            } else {
+                // Refresh grid data
+                var grid = $("#deleted-customers-grid").data("kendoGrid");
+                grid.dataSource.read();
+                grid.refresh();
+            }
+        });
+    });
+
+    function recoverCustomer(id) {
+        if (!confirm('Are you sure you want to recover this customer? They will be able to login again.')) {
+            return;
+        }
+        $.ajax({
+            url: '@Url.Action("RecoverDeletedCustomer", "WaAkgAdmin", new { area = "Admin" })',
+            type: 'POST',
+            data: addAntiForgeryToken({ id: id }),
+            success: function (response) {
+                if (response.Success) {
+                    alert('Customer recovered successfully!');
+                    var grid = $("#deleted-customers-grid").data("kendoGrid");
+                    grid.dataSource.read();
+                    grid.refresh();
+                } else {
+                    alert('Error: ' + response.Message);
+                }
+            },
+            error: function () {
+                alert('Failed to recover customer.');
+            }
+        });
+    }
+
+    function permanentDeleteCustomer(id) {
+        if (!confirm('WARNING: This action cannot be undone! The customer data will be lost forever. Continue?')) {
+            return;
+        }
+        $.ajax({
+            url: '@Url.Action("PermanentDeleteCustomer", "WaAkgAdmin", new { area = "Admin" })',
+            type: 'POST',
+            data: addAntiForgeryToken({ id: id }),
+            success: function (response) {
+                if (response.Success) {
+                    alert('Customer permanently deleted.');
+                    var grid = $("#deleted-customers-grid").data("kendoGrid");
+                    grid.dataSource.read();
+                    grid.refresh();
+                } else {
+                    alert('Error: ' + response.Message);
+                }
+            },
+            error: function () {
+                alert('Failed to delete customer.');
+            }
+        });
+    }
 </script>
+
+@* Modal for Deleted Customers Grid *@
+<div id="modal-deleted-customers" class="modal fade" tabindex="-1" role="dialog" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Deleted Customers</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div id="deleted-customers-grid"></div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
