@@ -36,6 +36,7 @@ public class WaOtpController : BasePluginController
     protected readonly IRepository<Customer> _customerRepository;
     protected readonly IWaAkgService _waAkgService;
     protected readonly IWaAkgErrorLogService _errorLogService;
+    protected readonly IWaAkgDeletedCustomerService _deletedCustomerService;
     protected readonly IMemoryCache _memoryCache;
     protected readonly ILogger _logger;
     protected readonly CustomerSettings _customerSettings;
@@ -56,6 +57,7 @@ public class WaOtpController : BasePluginController
         IRepository<Customer> customerRepository,
         IWaAkgService waAkgService,
         IWaAkgErrorLogService errorLogService,
+        IWaAkgDeletedCustomerService deletedCustomerService,
         IMemoryCache memoryCache,
         ILogger logger,
         CustomerSettings customerSettings,
@@ -72,6 +74,7 @@ public class WaOtpController : BasePluginController
         _customerRepository = customerRepository;
         _waAkgService = waAkgService;
         _errorLogService = errorLogService;
+        _deletedCustomerService = deletedCustomerService;
         _memoryCache = memoryCache;
         _logger = logger;
         _customerSettings = customerSettings;

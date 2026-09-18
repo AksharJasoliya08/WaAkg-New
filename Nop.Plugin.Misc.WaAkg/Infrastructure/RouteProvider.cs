@@ -34,6 +34,27 @@ public class RouteProvider : IRouteProvider
             name: "Plugin.Misc.WaAkg.WaOtp.Verify",
             pattern: "wa-otp/verify",
             defaults: new { controller = "WaOtp", action = "VerifyOtp" });
+
+        // Admin - Deleted Customers Grid
+        endpointRouteBuilder.MapControllerRoute(
+            name: "Plugin.Misc.WaAkg.Admin.DeletedCustomers",
+            pattern: "Admin/WaOtp/DeletedCustomers",
+            defaults: new { controller = "WaOtp", action = "DeletedCustomers", area = "Admin" });
+
+        endpointRouteBuilder.MapControllerRoute(
+            name: "Plugin.Misc.WaAkg.Admin.DeletedCustomerList",
+            pattern: "Admin/WaOtp/DeletedCustomerList",
+            defaults: new { controller = "WaOtp", action = "DeletedCustomerList", area = "Admin" });
+
+        endpointRouteBuilder.MapControllerRoute(
+            name: "Plugin.Misc.WaAkg.Admin.RecoverDeletedCustomer",
+            pattern: "Admin/WaOtp/RecoverDeletedCustomer",
+            defaults: new { controller = "WaOtp", action = "RecoverDeletedCustomer", area = "Admin" });
+
+        endpointRouteBuilder.MapControllerRoute(
+            name: "Plugin.Misc.WaAkg.Admin.PermanentDeleteCustomer",
+            pattern: "Admin/WaOtp/PermanentDeleteCustomer",
+            defaults: new { controller = "WaOtp", action = "PermanentDeleteCustomer", area = "Admin" });
     }
 
     /// <summary>Priority of the route provider.</summary>
