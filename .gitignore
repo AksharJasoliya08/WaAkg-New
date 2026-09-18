@@ -1,56 +1,52 @@
 ```
-# Build artifacts
+# Compiled and build artifacts
+*.pyc
+__pycache__/
 *.o
 *.obj
-*.exe
 *.dll
+*.exe
 *.so
-*.a
+*.class
 *.out
 
 # Dependencies
-packages/
-bin/
-obj/
-lib/
 node_modules/
-bower_components/
-
-# Logs
-*.log
-**/logs/
-
-# Environment
+venv/
+.venv/
 .env
 .env.local
-.env.*
+*.env.*
 
-# IDE files
-.vscode/
-.idea/
+# Build directories
+dist/
+build/
+target/
+bin/
+obj/
+
+# Logs and temp files
+*.log
+*.tmp
 *.swp
 *.swo
-*~
 
-# OS files
+# Editors
+.vscode/
+.idea/
+*.userprefs
+
+# OS generated files
 .DS_Store
 Thumbs.db
 
 # Coverage reports
 coverage/
 htmlcov/
-*.coverage
+.coverage
 
-# Temporary files
-*.tmp
-*.temp
-**/temp/
-
-# NopCommerce specific
-App_Data/
-obj/
-bin/
-*.compiled
-*.bak
-*.log
+# Cache directories
+.mypy_cache/
+.pytest_cache/
+.gradle/
 ```
